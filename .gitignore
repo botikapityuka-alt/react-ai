@@ -1,0 +1,18 @@
+# Titkos kulcsok és környezeti változók
+backend/.env
+.env
+
+# Python függőségek és virtuális környezet
+__pycache__/
+*.py[cod]
+ai_env/
+venv/
+
+# React/Node függőségek
+node_modules/
+dist/
+build/
+
+# Operációs rendszer fájljai
+.DS_Store
+Thumbs.db
