@@ -1,35 +1,20 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from groq import Groq # Az új könyvtár
-
-import os
-from dotenv import load_dotenv
 from groq import Groq
-# Itt valószínűleg vannak más importjaid is, pl.:
-# from fastapi import FastAPI 
 
-# 1. Ez a sor tölti be a .env fájlt
+# 1. Környezeti változók betöltése (.env fájlból helyben, vagy Render beállításaiból élesben)
 load_dotenv()
 
-# 2. Itt olvassuk be a kulcsot a változóba
-# A gsk_... kezdetű szöveget TELJESEN töröld ki innen!
+# 2. API kliens inicializálása
 api_key = os.getenv("GROQ_API_KEY")
-
-# 3. A kliens inicializálása a változóval
-client = Groq(
-    api_key=api_key,
-)
-
-# --- INNENTŐL FOLYTATÓDIK A TE EREDETI KÓDOD ---
-# Például:
-# app = FastAPI()
-#
-# @app.post("/chat")
-# ... stb.
+client = Groq(api_key=api_key)
 
 app = FastAPI()
 
+# 3. CORS beállítása (hogy a GitHub Pages-en lévő frontend elérhesse a backendet)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,24 +22,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- GROQ BEÁLLÍTÁS ---
-client = Groq(
-    api_key = os.getenv("GROQ_API_KEY"),
-)
-
 class StudyRequest(BaseModel):
     text: str
+
+@app.get("/")
+async def root():
+    return {"message": "A backend fut!"}
 
 @app.post("/analyze")
 async def analyze_text(request: StudyRequest):
     try:
-        # A Llama 3 modellt használjuk, ami ingyenes és nagyon gyors
         completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile", # Ez a legokosabb ingyenes modell náluk
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
-                    "content": "Te egy profi tanulási segéd vagy. Foglald össze a szöveget pontokba szedve, majd készíts 3 kvízkérdést."
+                    "content": "Te egy profi tanulási segéd vagy. Foglald össze a szöveget pontokba szedve, majd készíts 3 kvízkérdést magyar nyelven."
                 },
                 {
                     "role": "user",
@@ -64,6 +47,11 @@ async def analyze_text(request: StudyRequest):
         )
         return {"analysis": completion.choices[0].message.content}
     except Exception as e:
-        return {"analysis": f"Hiba: {str(e)}"}
+        return {"analysis": f"Hiba történt: {str(e)}"}
 
-# Indítás: uvicorn main:app --reload --port 8001
+# 4. Render specifikus indítás
+if __name__ == "__main__":
+    import uvicorn
+    # A Render a PORT környezeti változón keresztül mondja meg, hol figyeljen a szerver
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
